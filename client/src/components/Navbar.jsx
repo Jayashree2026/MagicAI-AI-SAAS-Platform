@@ -10,7 +10,13 @@ const Navbar = () => {
     const { openSignIn } = useClerk();
     return (
         <div className='fixed z-5 w-full backdrop-blur-2xl flex justify-between items-center py-3 px-4 sm:px-20 xl:px-32'>
-            <img src={assets.logo} alt='' onClick={navigate('/')} />
+            {/* ✅ Fix: use arrow function to call navigate only on click */}
+            <img
+                src={assets.logo}
+                alt='Logo'
+                onClick={() => navigate('/')}
+                className='cursor-pointer h-10 w-auto'
+            />
 
             {
                 user ? <UserButton /> : (<button onClick={openSignIn} className='flex items-center gap-2 rounded-full text-sm cursor-pointer bg-amber-400 text-black px-10 py-2.5'>Get started

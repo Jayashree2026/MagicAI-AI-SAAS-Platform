@@ -1,15 +1,46 @@
 import { Image, Scissors, Sparkles } from 'lucide-react'
 import React, { useState } from 'react'
+import { useAuth } from '@clerk/clerk-react';
+import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 
 const Removeobject = () => {
-  
- 
+
+
   const [input, setInput] = useState('')
   const [object, setobject] = useState('')
- 
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState('');
+
+  const { getToken } = useAuth();
 
   const onSubmitHandler = async (e) => {
-    e.prevenetDefault()
+    e.preventDefault();
+    try {
+      setLoading(true);
+      if(object.split(' ').length>1){
+        return toast('Please enter only one object item')
+      }
+      const formData = new FormData;
+      formData.append('image', input)
+      formData.append('object', object)
+
+      const { data } = await axios.post(
+        '/api/ai/remove-image-object',
+        formData,
+        { headers: { Authorization: `Bearer ${await getToken()}` } }
+      );
+      if (data.success) {
+        setContent(data.content);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+    setLoading(false);
   }
 
 
@@ -22,18 +53,23 @@ const Removeobject = () => {
           <h1 className='text-xl font-semibold'>Object Removal</h1>
         </div>
         <p className='mt-6 text-sm font-medium'>Upload image</p>
-        <input onChange={(e)=>setInput(e.target.files[0])} accept='image/*' type="file" className='text-gray-600 w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300'  required />
-       
+        <input onChange={(e) => setInput(e.target.files[0])} accept='image/*' type="file" className='text-gray-600 w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300' required />
+
         <p className='mt-6 text-sm font-medium'>Describe your object</p>
-        <textarea onChange={(e)=>setobject(e.target.value)} rows={4} value={object}  className='w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300' placeholder='The future of artificial intelligence is...' required />
-        
+        <textarea onChange={(e) => setobject(e.target.value)} rows={4} value={object} className='w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300' placeholder='The future of artificial intelligence is...' required />
 
-       
-    
 
-        <button className='w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#417df6] to-[#8e37eb] text-white px-4 py-2 mt-6                                             
+
+
+
+        <button disabled={loading} className='w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#417df6] to-[#8e37eb] text-white px-4 py-2 mt-6                                             
             text-sm rounded-lg cursor-pointer'>
-          <Scissors className='w-5' />
+              {loading ? (
+            <span className='w-4 h-4 my-1 rounded-full border-2 border-t-transparent animate-spin'></span>
+          ) : (
+            <Scissors className='w-5' />
+          )}
+          
           Remove Object
         </button>
 
@@ -45,12 +81,18 @@ const Removeobject = () => {
           <h1 className='text-xl font-semibold'>Generated Images</h1>
         </div>
 
+         {!content ? (
         <div className='flex-1 flex justify-center items-center'>
           <div className='text-sm flex flex-col items-center gap-5 text-gray-400'>
             <Scissors className='w-9 h-9' />
             <p>Upload a image and click “Remove object ” to get started</p>
           </div>
         </div>
+         ):(
+          <div className='h-full mt-3'>
+            <img src={content} alt="image" className='mt-3 w-full h-full' />
+          </div>
+         )}
       </div>
 
     </div>

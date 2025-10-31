@@ -1,17 +1,44 @@
 import { Image, Sparkle, Sparkles } from 'lucide-react'
 import React, { useState } from 'react'
+import { useAuth } from '@clerk/clerk-react';
+
+import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 
 const Generatedimage = () => {
- const imgcategories = 
+  const imgcategories =
     [
-      'General','Lifestyle','Food','Travel','Education'    ]
-  
+      'General', 'Lifestyle', 'Food', 'Travel', 'Education']
+
   const [selectedstyle, setSelectedstyle] = useState('General')
   const [input, setInput] = useState('')
-  const [publish,setpublish]=useState(false)
+  const [publish, setpublish] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState('');
+
+  const { getToken } = useAuth();
 
   const onSubmitHandler = async (e) => {
-    e.prevenetDefault()
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const prompt = `Generate an image of ${input} in the style ${selectedstyle}`; // ✅ removed extra brace
+      const { data } = await axios.post(
+        '/api/ai/generate-image',
+        { prompt, publish },
+        { headers: { Authorization: `Bearer ${await getToken()}` } }
+      );
+      if (data.success) {
+        setContent(data.content);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+    setLoading(false);
   }
 
 
@@ -24,7 +51,7 @@ const Generatedimage = () => {
           <h1 className='text-xl font-semibold'>AI Image Generator</h1>
         </div>
         <p className='mt-6 text-sm font-medium'>Describe your image</p>
-        <textarea onChange={(e)=>setInput(e.target.value)} rows={4} value={input}  className='w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300' placeholder='The future of artificial intelligence is...' required />
+        <textarea onChange={(e) => setInput(e.target.value)} rows={4} value={input} className='w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300' placeholder='The future of artificial intelligence is...' required />
         <p className='mt-4 text-sm font-medium'>Styles</p>
 
         <div className='mt-3 flex gap-3 flex-wrap sm:max-w-9/11'>
@@ -35,24 +62,29 @@ const Generatedimage = () => {
           ))}
         </div>
 
-       
-          <div className='my-6 flex items-center gap-2'>
-            <label className='relative cursor-pointer'>
-              <input type='checkbox' onChange={(e)=>setpublish(e.target.checked)} checked={publish} className='sr-only peer' />
 
-              <div className='w-9 h-5 peer-checked:bg-green-500 transition bg-slate-300 rounded-full'>
+        <div className='my-6 flex items-center gap-2'>
+          <label className='relative cursor-pointer'>
+            <input type='checkbox' onChange={(e) => setpublish(e.target.checked)} checked={publish} className='sr-only peer' />
 
-              </div>
-              <span className='absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition peer-checked:translate-x-4'>
+            <div className='w-9 h-5 peer-checked:bg-green-500 transition bg-slate-300 rounded-full'>
 
-              </span>
-            </label>
-            <p className='text-sm'>Make this image public</p>
-          </div>
+            </div>
+            <span className='absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition peer-checked:translate-x-4'>
 
-        <button className='w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#00ad25] to-[#04ff50] text-white px-4 py-2 mt-6                                             
+            </span>
+          </label>
+          <p className='text-sm'>Make this image public</p>
+        </div>
+
+        <button disabled={loading} className='w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#00ad25] to-[#04ff50] text-white px-4 py-2 mt-6                                             
             text-sm rounded-lg cursor-pointer'>
-          <Image className='w-5' />
+          {loading ? (
+            <span className='w-4 h-4 my-1 rounded-full border-2 border-t-transparent animate-spin'></span>
+          ) : (
+            <Image className='w-5' />
+          )}
+
           Generate Image
         </button>
 
@@ -64,16 +96,24 @@ const Generatedimage = () => {
           <h1 className='text-xl font-semibold'>Generated Images</h1>
         </div>
 
-        <div className='flex-1 flex justify-center items-center'>
-          <div className='text-sm flex flex-col items-center gap-5 text-gray-400'>
-            <Image className='w-9 h-9' />
-            <p>Enter a topic and click “Generate Title ” to get started</p>
+        {!content ? (
+          <div className='flex-1 flex justify-center items-center'>
+            <div className='text-sm flex flex-col items-center gap-5 text-gray-400'>
+              <Image className='w-9 h-9' />
+              <p>Enter a topic and click “Generate Title ” to get started</p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className='h-full mt-3'>
+            <img src={content} alt="image" className='w-full h-full' />
+          </div>
+        )}
+
       </div>
 
     </div>
   )
 }
+
 
 export default Generatedimage
